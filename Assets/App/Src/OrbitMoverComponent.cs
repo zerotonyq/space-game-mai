@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace App.Src
+namespace App
 {
     public class OrbitMoverComponent : MonoBehaviour
     {

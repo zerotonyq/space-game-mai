@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3854711324164441006
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4880711712036186585}
+  - component: {fileID: 2829377809010371925}
+  m_Layer: 0
+  m_Name: generator_pref
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4880711712036186585
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3854711324164441006}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -11.6, y: 0.86, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2829377809010371925
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3854711324164441006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b42b637063bba0c4e9c83c06b2f226c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::App.ConcentricSegmentLayerGenerator
+  circleRadiusUnits: 1
+  circleColor: {r: 1, g: 1, b: 1, a: 1}
+  segmentArcLengthMinUnits: 2.61
+  segmentArcLengthMaxUnits: 5
+  layerThicknessUnits: 0.5
+  layerOverlapUnits: 0.002
+  segmentOverlapDegrees: 0.5
+  layerRotations:
+  - Degrees: 0
+  - Degrees: 0
+  - Degrees: 0
+  - Degrees: 0
+  - Degrees: 0
+  centerCirclePrefabs:
+  - {fileID: 2202621090895322489, guid: 576b46c4d0e9af44eb574f03dcfc759f, type: 3}
+  segmentPrefabs:
+  - {fileID: 3292695198949022519, guid: 04db96c8909e86848af3c71340108f6e, type: 3}
+  - {fileID: 3292695198949022519, guid: fae379d68666d5e40b2fb4a64a742cb1, type: 3}
+  pixelsPerUnit: 128
+  filterMode: 0
+  textureTileSizeUnits: 0.4
+  textureUvOffset: {x: 0, y: 0}
+  enableSegmentOutline: 1
+  segmentOutlineColor: {r: 1, g: 1, b: 1, a: 1}
+  segmentOutlineWidthPixels: 1
+  editorFrameBudgetMs: 4
+  runtimeFrameBudgetMs: 4
+  segmentBatchSize: 32
+  generateOnStartRuntime: 1

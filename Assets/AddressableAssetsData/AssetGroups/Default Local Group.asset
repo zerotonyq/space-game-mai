@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Default Local Group
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: Default Local Group
+  m_GUID: 218611fd3bffc544890ff02342b4b2c0
+  m_SerializeEntries:
+  - m_GUID: 02fc8474afb841044a06441a37a7a1d2
+    m_Address: Assets/App/Prefabs/Characters/hero Variant.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 87146c44de96e7d4c99b10d0fe5e7db7
+    m_Address: Assets/App/Prefabs/Characters/villain Variant.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c7f471243e272854eb5bfd45651219c8
+    m_Address: Assets/App/Prefabs/CinemachineCamera.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e25a695bd2b834c4493ab4ead05c1807
+    m_Address: Assets/App/Prefabs/Characters/peasfull Variant.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 6d5962ea3e1afec46b2e58cd0d68fef3, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 0e583027cff451249846ed561cf95646, type: 2}
+    - {fileID: 11400000, guid: 6f44460ce6f96ec47ad8afd6f72d24fb, type: 2}
