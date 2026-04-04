@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4f6d453b137be04a98db2afe85bfb43, type: 3}
+  m_Name: WorldCharacterSpawnSettings
+  m_EditorClassIdentifier: Assembly-CSharp::App.Entities.Config.WorldCharacterSpawnSettings
+  heroAssetReference:
+    m_AssetGUID: 02fc8474afb841044a06441a37a7a1d2
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  peacefulAssetReference:
+    m_AssetGUID: e25a695bd2b834c4493ab4ead05c1807
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  villainAssetReference:
+    m_AssetGUID: 87146c44de96e7d4c99b10d0fe5e7db7
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  minEntitiesPerPlanet: 1
+  maxEntitiesPerPlanet: 5
+  perPlanetCountJitter: 1
+  villainPlanetChance: 0.5
+  heroAltitudeFromSurface: 2
+  npcAltitudeMinFromSurface: 1
+  npcAltitudeMaxFromSurface: 4
+  heroAngularSpeedDegPerSecond: 25
+  npcAngularSpeedMinDegPerSecond: 15
+  npcAngularSpeedMaxDegPerSecond: 40
+  heroRotationDirection: -1
+  randomizeNpcDirection: 1
+  entitiesStateFileName: entities_state.json
+  destroyEntitiesOnWorldUnload: 1
+  verboseLogging: 1
