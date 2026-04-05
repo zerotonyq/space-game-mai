@@ -1,7 +1,6 @@
-using App.Planets.GfxGen.Persistence;
 using UnityEngine;
 
-namespace App.Planets.GfxGen
+namespace App.Planets.Persistence
 {
     // Scene context for menu runtime service. Holds scene references and defaults.
     public class PlanetWorldMenuController : MonoBehaviour

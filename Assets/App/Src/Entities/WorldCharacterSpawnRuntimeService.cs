@@ -4,8 +4,10 @@ using System.IO;
 using System.Linq;
 using App.Entities.Config;
 using App.Infrastructure.DI;
-using App.Planets.GfxGen;
-using App.Planets.GfxGen.Persistence;
+using App.Infrastructure.DI.Base;
+using App.Planets.Generation;
+using App.Planets.Persistence;
+using App.Signals;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -41,11 +43,13 @@ namespace App.Entities
         public EntityHeroTag CurrentHero => _currentHero;
         public PlanetOrbitMovement CurrentHeroOrbitMovement => _currentHeroOrbitMovement;
         public event Action<EntityHeroTag, PlanetOrbitMovement> HeroOrbitChanged;
-
+        public event Action<EntityHeroTag> HeroSpawned;
+        
+        
         public WorldCharacterSpawnRuntimeService(
             PlanetWorldManager worldManager,
             PlanetWorldService worldService,
-            [InjectOptional] WorldCharacterSpawnSettings settings)
+            WorldCharacterSpawnSettings settings)
         {
             _worldManager = worldManager;
             _worldService = worldService;
@@ -281,6 +285,7 @@ namespace App.Entities
 
             _currentHero = instance.GetComponent<EntityHeroTag>();
             _currentHeroOrbitMovement = movement;
+            HeroSpawned?.Invoke(_currentHero);
             NotifyHeroOrbitChanged();
 
             return runtime;

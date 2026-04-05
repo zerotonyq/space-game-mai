@@ -1,13 +1,13 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System;
+using App.Planets.Core;
+using App.Planets.Placement;
+using UnityEditor;
 using UnityEngine;
 using Random = UnityEngine.Random;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
-namespace App.Planets.GfxGen
+namespace App.Planets.Generation
 {
     [System.Serializable]
     public class PlanetLayerRotationSetting

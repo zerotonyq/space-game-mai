@@ -1,5 +1,6 @@
 using App.Infrastructure.DI;
-using App.Planets.GfxGen;
+using App.Infrastructure.DI.Base;
+using App.Planets.Generation;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Zenject;
@@ -147,7 +148,9 @@ namespace App.Entities
                 ? hero.TransferSpeedUnitsPerSecond
                 : FallbackTransferSpeed);
             var nextPosition = Vector2.MoveTowards(heroPosition, desiredPosition, speed * Time.deltaTime);
+            var movementDirection = nextPosition - heroPosition;
             hero.transform.position = new Vector3(nextPosition.x, nextPosition.y, hero.transform.position.z);
+            heroOrbit.AlignXAxisToWorldDirection(movementDirection);
 
             var arrivalThreshold = Mathf.Max(0.01f, hero.TransferArrivalThresholdUnits > 0f
                 ? hero.TransferArrivalThresholdUnits

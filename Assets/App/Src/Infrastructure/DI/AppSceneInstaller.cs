@@ -1,6 +1,7 @@
 using App.Entities;
-using App.Planets.GfxGen;
-using App.Planets.GfxGen.Persistence;
+using App.Planets.Generation;
+using App.Planets.Persistence;
+using App.Signals;
 using Zenject;
 
 namespace App.Infrastructure.DI
@@ -9,9 +10,10 @@ namespace App.Infrastructure.DI
     {
         public override void InstallBindings()
         {
-            Container.BindInterfacesAndSelfTo<GameServicesInitializer>().AsSingle().NonLazy();
-            
-            
+            SignalBusInstaller.Install(Container);
+            Container.DeclareSignal<UiCreatedSignal>();
+
+
             Container.Bind<PlanetWorldService>().FromComponentInHierarchy().AsSingle();
             Container.Bind<PlanetRuntimeGenerationFactory>().FromComponentInHierarchy().AsSingle();
             Container.BindInterfacesAndSelfTo<PlanetWorldManager>().FromComponentInHierarchy().AsSingle();
@@ -20,12 +22,13 @@ namespace App.Infrastructure.DI
             Container.Bind<WorldMenuCanvasController>().FromComponentInHierarchy().AsSingle();
             Container.Bind<WorldGameplayCanvasController>().FromComponentInHierarchy().AsSingle();
             Container.Bind<WorldLoadingCanvasController>().FromComponentInHierarchy().AsSingle();
+            
             Container.BindInterfacesAndSelfTo<PlanetWorldMenuRuntimeService>().AsSingle().NonLazy();
-
             Container.BindInterfacesAndSelfTo<WorldCharacterSpawnRuntimeService>().AsSingle().NonLazy();
-
             Container.BindInterfacesAndSelfTo<HeroPlanetCinemachineCameraRuntimeService>().AsSingle().NonLazy();
             Container.BindInterfacesAndSelfTo<HeroPlanetSwitchRuntimeService>().AsSingle().NonLazy();
+            
+            Container.BindInterfacesAndSelfTo<GameServicesInitializer>().AsSingle().NonLazy();
         }
     }
 }

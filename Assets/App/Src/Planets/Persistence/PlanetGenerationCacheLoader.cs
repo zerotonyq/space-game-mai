@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using App.Planets.Core;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace App.Planets.GfxGen.Persistence
+namespace App.Planets.Persistence
 {
     internal static class PlanetGenerationCacheLoader
     {

@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using App.Infrastructure.DI;
+using App.Infrastructure.DI.Base;
+using App.Planets.Generation;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Zenject;
 
-namespace App.Planets.GfxGen.Persistence
+namespace App.Planets.Persistence
 {
     public class PlanetWorldManager : MonoBehaviour, IGameService
     {

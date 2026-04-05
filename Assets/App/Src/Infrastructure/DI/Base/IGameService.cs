@@ -1,9 +1,15 @@
-﻿using Cysharp.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 
-namespace App.Infrastructure.DI
+namespace App.Infrastructure.DI.Base
 {
     public interface IGameService
     {
         public UniTask Initialize();
+
+        public UniTask PostInitialize()
+        {
+            return UniTask.CompletedTask;
+        }
     }
 }

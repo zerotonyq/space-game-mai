@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 
-namespace App.Planets.GfxGen
+namespace App.Planets.Persistence
 {
     public class WorldLoadingCanvasController : MonoBehaviour
     {

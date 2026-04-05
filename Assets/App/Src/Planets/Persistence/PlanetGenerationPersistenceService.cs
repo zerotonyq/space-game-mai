@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using App.Planets.Generation;
 using UnityEngine;
 
-namespace App.Planets.GfxGen.Persistence
+namespace App.Planets.Persistence
 {
     public class PlanetGenerationPersistenceService : MonoBehaviour
     {

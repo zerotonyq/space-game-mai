@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace App.Planets.GfxGen
+namespace App.Planets.Placement
 {
     public class PlanetSegmentSpawnRule : MonoBehaviour
     {

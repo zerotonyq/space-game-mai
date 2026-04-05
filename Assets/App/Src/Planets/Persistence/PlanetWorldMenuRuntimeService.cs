@@ -1,11 +1,11 @@
 using System;
 using App.Entities;
-using App.Infrastructure.DI;
-using App.Planets.GfxGen.Persistence;
+using App.Infrastructure.DI.Base;
+using App.Signals;
 using Cysharp.Threading.Tasks;
 using Zenject;
 
-namespace App.Planets.GfxGen
+namespace App.Planets.Persistence
 {
     public class PlanetWorldMenuRuntimeService : IGameService, IDisposable, ITickable
     {
@@ -20,11 +20,16 @@ namespace App.Planets.GfxGen
         private readonly IGameplayPlanetSwitchRuntimeService _planetSwitchService;
         private bool _operationInProgress;
 
+        [Inject] private SignalBus _signalBus;
+        private readonly WorldCharacterSpawnRuntimeService _characterSpawnRuntimeService;
+
         public PlanetWorldMenuRuntimeService(
             PlanetWorldMenuController context,
             [InjectOptional] IGameplayCameraZoomRuntimeService cameraZoomService,
-            [InjectOptional] IGameplayPlanetSwitchRuntimeService planetSwitchService)
+            [InjectOptional] IGameplayPlanetSwitchRuntimeService planetSwitchService,
+            WorldCharacterSpawnRuntimeService characterSpawnRuntimeService)
         {
+            _characterSpawnRuntimeService = characterSpawnRuntimeService;
             _context = context;
             _cameraZoomService = cameraZoomService;
             _planetSwitchService = planetSwitchService;
@@ -35,6 +40,7 @@ namespace App.Planets.GfxGen
             if (_context == null || _context.WorldManager == null)
                 return UniTask.CompletedTask;
 
+            _characterSpawnRuntimeService.HeroSpawned += OnHeroSpawned;
             if (_context.MenuCanvasController != null)
             {
                 _context.MenuCanvasController.Initialize(
@@ -56,18 +62,29 @@ namespace App.Planets.GfxGen
             SyncBusyState();
             UpdateLoadingProgress();
 
+
+            return UniTask.CompletedTask;
+        }
+
+        private void OnHeroSpawned(EntityHeroTag obj) => obj.GetComponent<HeroAimRayVisualizer>()
+            .SetAimJoystick(_context.GameplayCanvasController.AimJoystick);
+
+        public UniTask PostInitialize()
+        {
+            _signalBus.Fire(new UiCreatedSignal { Joystick = _context.GameplayCanvasController!.AimJoystick });
             return UniTask.CompletedTask;
         }
 
         public void Dispose()
         {
+            _characterSpawnRuntimeService.HeroSpawned -= OnHeroSpawned;
             _context?.MenuCanvasController?.Release();
             _context?.GameplayCanvasController?.Release();
         }
 
         public void Tick()
         {
-            if (_context == null || _context.WorldManager == null)
+            if (!_context || !_context.WorldManager)
                 return;
 
             SyncBusyState();
@@ -130,9 +147,11 @@ namespace App.Planets.GfxGen
             _planetSwitchService?.TrySwitchToSelectedPlanet();
         }
 
-        private void RequestWorldOperation(Func<UniTask> operation, UiState stateOnComplete, bool refreshWorldListAfterCompletion)
+        private void RequestWorldOperation(Func<UniTask> operation, UiState stateOnComplete,
+            bool refreshWorldListAfterCompletion)
         {
-            if (operation == null || _context?.WorldManager == null || _operationInProgress || _context.WorldManager.IsBusy)
+            if (operation == null || _context?.WorldManager == null || _operationInProgress ||
+                _context.WorldManager.IsBusy)
                 return;
 
             ExecuteWorldOperationAsync(operation, stateOnComplete, refreshWorldListAfterCompletion).Forget();
@@ -204,7 +223,9 @@ namespace App.Planets.GfxGen
 
         private string BuildNewWorldId()
         {
-            var prefix = string.IsNullOrWhiteSpace(_context.NewWorldIdPrefix) ? "world" : _context.NewWorldIdPrefix.Trim();
+            var prefix = string.IsNullOrWhiteSpace(_context.NewWorldIdPrefix)
+                ? "world"
+                : _context.NewWorldIdPrefix.Trim();
             return $"{prefix}_{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}";
         }
     }

@@ -1,7 +1,8 @@
 using System.Collections.Generic;
+using App.Planets.Core;
 using UnityEngine;
 
-namespace App.Planets.GfxGen
+namespace App.Planets.Generation
 {
     internal sealed class PlanetSpriteFactory
     {

@@ -1,47 +1,31 @@
 using System.Collections.Generic;
+using App.Infrastructure.DI.Base;
 using Cysharp.Threading.Tasks;
-using UnityEngine;
 using Zenject;
 
 namespace App.Infrastructure.DI
 {
-    public class GameServicesInitializer : IInitializable
+    public class GameServicesInitializer
     {
-        private readonly List<IGameService> _gameServices;
-        private bool _isInitializing;
-        private bool _isInitialized;
-
-        public GameServicesInitializer(List<IGameService> gameServices)
+        [Inject] private readonly List<IGameService> _gameServices;
+        
+        [Inject]
+        public async UniTask Initialize()
         {
-            _gameServices = gameServices;
+            await InitializeAsync();
+            await PostInitializeAsync();
         }
 
-        public void Initialize()
+        private async UniTask PostInitializeAsync()
         {
-            if (_isInitializing || _isInitialized)
-                return;
-
-            InitializeAsync().Forget();
+            foreach (var service in _gameServices)
+                await service.PostInitialize();
         }
 
-        private async UniTaskVoid InitializeAsync()
+        private async UniTask InitializeAsync()
         {
-            _isInitializing = true;
-            try
-            {
-                for (var i = 0; i < _gameServices.Count; i++)
-                    await _gameServices[i].Initialize();
-
-                _isInitialized = true;
-            }
-            catch (System.Exception exception)
-            {
-                Debug.LogException(exception);
-            }
-            finally
-            {
-                _isInitializing = false;
-            }
+            foreach (var service in _gameServices)
+                await service.Initialize();
         }
     }
 }

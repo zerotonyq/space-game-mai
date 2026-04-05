@@ -1,9 +1,9 @@
 using System.Collections.Generic;
-using App.Planets.GfxGen.Persistence;
+using App.Planets.Persistence;
 using UnityEngine;
 using Zenject;
 
-namespace App.Planets.GfxGen
+namespace App.Planets.Generation
 {
     public class PlanetRuntimeGenerationFactory : MonoBehaviour
     {

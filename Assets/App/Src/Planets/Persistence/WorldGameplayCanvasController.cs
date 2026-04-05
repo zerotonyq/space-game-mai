@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace App.Planets.GfxGen
+namespace App.Planets.Persistence
 {
     public class WorldGameplayCanvasController : MonoBehaviour
     {
@@ -31,6 +31,7 @@ namespace App.Planets.GfxGen
         private Action _onAimReleased;
         private Vector2Int _lastScreenSize;
         public Vector2 AimDirection => aimJoystick ? aimJoystick.Direction : Vector2.zero;
+        public GameplayAimJoystick AimJoystick => aimJoystick;
 
         private void OnEnable()
         {

@@ -1,7 +1,8 @@
 using System.Collections.Generic;
+using App.Planets.Core;
 using UnityEngine;
 
-namespace App.Planets.GfxGen
+namespace App.Planets.Placement
 {
     internal sealed class PlanetSegmentProbabilitySelector
     {

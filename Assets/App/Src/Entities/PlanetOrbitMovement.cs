@@ -103,6 +103,27 @@ namespace App.Entities
                 _orbitCenter.position.x + offset.x,
                 _orbitCenter.position.y + offset.y,
                 currentZ);
+
+            var fromCenter = (Vector2)transform.position - (Vector2)_orbitCenter.position;
+            AlignYAxisToWorldDirection(fromCenter);
+        }
+
+        public void AlignXAxisToWorldDirection(Vector2 direction)
+        {
+            if (direction.sqrMagnitude <= 0.000001f)
+                return;
+
+            var angleDeg = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.Euler(0f, 0f, angleDeg);
+        }
+
+        public void AlignYAxisToWorldDirection(Vector2 direction)
+        {
+            if (direction.sqrMagnitude <= 0.000001f)
+                return;
+
+            var angleDeg = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
+            transform.rotation = Quaternion.Euler(0f, 0f, angleDeg);
         }
     }
 }

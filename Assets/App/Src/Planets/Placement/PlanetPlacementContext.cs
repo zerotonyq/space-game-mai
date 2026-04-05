@@ -1,4 +1,4 @@
-namespace App.Planets.GfxGen
+namespace App.Planets.Placement
 {
     public readonly struct PlanetPlacementContext
     {

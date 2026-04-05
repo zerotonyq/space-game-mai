@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace App.Planets.GfxGen
+namespace App.Planets.Persistence
 {
     public class GameplayAimJoystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
     {

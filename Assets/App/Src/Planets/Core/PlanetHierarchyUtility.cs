@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace App.Planets.GfxGen
+namespace App.Planets.Core
 {
     internal static class PlanetHierarchyUtility
     {

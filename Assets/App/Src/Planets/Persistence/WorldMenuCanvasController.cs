@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using App.Planets.GfxGen.Persistence;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace App.Planets.GfxGen
+namespace App.Planets.Persistence
 {
     public class WorldMenuCanvasController : MonoBehaviour
     {
