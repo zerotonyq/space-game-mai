@@ -19,7 +19,7 @@ namespace App.Planets.Generation
     {
         public event Action<PlanetGenerator> PlanetGenerated;
         public bool GenerateOnStartRuntime => generateOnStartRuntime;
-        public float EstimatedOuterRadiusUnits => GetEstimatedOuterRadiusUnits();
+        public float EstimatedOuterRadiusUnits => _generatedOuterRadiusUnits > 0f ? _generatedOuterRadiusUnits : GetEstimatedOuterRadiusUnits();
 
         [Header("Circle")]
         [SerializeField] [Range(0.1f, 20f)] private float circleRadiusUnits = 1f;
@@ -34,6 +34,10 @@ namespace App.Planets.Generation
 
         [Header("Per Layer Rotation (degrees)")]
         [SerializeField] private List<PlanetLayerRotationSetting> layerRotations = new List<PlanetLayerRotationSetting>();
+        
+        [Header("Layer Count Bounds")]
+        [SerializeField] [Min(0)] private int layerCountLeftBoundary;
+        [SerializeField] [Min(0)] private int layerCountRightBoundary;
 
         [Header("Prefab Pools")]
         [SerializeField] private List<PlanetSegmentProfile> centerCirclePrefabs = new List<PlanetSegmentProfile>();
@@ -51,6 +55,11 @@ namespace App.Planets.Generation
         [SerializeField] private bool enableSegmentOutline = true;
         [SerializeField] private Color segmentOutlineColor = Color.black;
         [SerializeField] [Range(1f, 8f)] private float segmentOutlineWidthPixels = 1f;
+        
+        [Header("Segment Rendering")]
+        [SerializeField] private bool useMaskedSegmentRendering = true;
+        [SerializeField] [Range(0.1f, 16f)] private float coreTextureScale = 1f;
+        [SerializeField] [Range(0.1f, 16f)] private float segmentTextureScale = 1f;
 
         [Header("Async Generation")]
         [SerializeField] [Range(0.5f, 25f)] private float editorFrameBudgetMs = 4f;
@@ -62,6 +71,9 @@ namespace App.Planets.Generation
         private PlanetSpriteFactory _spriteFactory;
         private readonly PlanetSegmentProbabilitySelector _segmentProbabilitySelector = new PlanetSegmentProbabilitySelector();
         private Coroutine _runtimeGenerationCoroutine;
+        private Sprite _maskedSegmentSprite;
+        private Texture2D _maskedSegmentTexture;
+        private float _generatedOuterRadiusUnits = -1f;
 #if UNITY_EDITOR
         private IEnumerator _editorGenerationRoutine;
         private bool _isGenerating;
@@ -80,6 +92,7 @@ namespace App.Planets.Generation
             StopEditorGeneration();
 #endif
             _spriteFactory?.DestroyGeneratedTextures();
+            DestroyMaskedSegmentSprite();
         }
 
         private void OnDisable()
@@ -213,6 +226,7 @@ namespace App.Planets.Generation
         {
             NormalizeInput();
             ConfigureSpriteFactory();
+            SetGeneratedOuterRadiusUnits(-1f);
 
             var generatedRoot = PlanetHierarchyUtility.GetOrCreateGeneratedRoot(transform, GeneratedRootName);
             PlanetHierarchyUtility.ClearChildren(generatedRoot, Application.isPlaying);
@@ -237,16 +251,51 @@ namespace App.Planets.Generation
             var profile = PlanetSegmentProfilePicker.PickRandomProfile(centerCirclePrefabs) ?? PlanetSegmentProfilePicker.PickRandomProfile(segmentPrefabs);
             var circleObject = PlanetHierarchyUtility.CreateObjectFromProfile("CenterCircle", generatedRoot, profile);
             var renderer = PlanetHierarchyUtility.GetOrAddSpriteRenderer(circleObject);
-            renderer.sprite = _spriteFactory.CreateCircleSprite(circleRadiusUnits, circleColor, profile);
+            if (useMaskedSegmentRendering)
+            {
+                if (_maskedSegmentSprite == null)
+                    _maskedSegmentSprite = CreateMaskedSegmentSprite();
+
+                renderer.sprite = _maskedSegmentSprite;
+                circleObject.transform.localScale = Vector3.one * (circleRadiusUnits * 2f);
+                var mask = circleObject.GetComponent<PlanetSegmentRenderMask>();
+                if (!mask)
+                    mask = circleObject.AddComponent<PlanetSegmentRenderMask>();
+
+                var fillColor = profile ? profile.Tint : circleColor;
+                var coreScale = profile ? profile.TextureScale * coreTextureScale : coreTextureScale;
+                mask.Configure(
+                    0f,
+                    0.5f,
+                    180f,
+                    profile ? profile.FillTexture : null,
+                    fillColor,
+                    coreScale,
+                    outlineEnabled: false,
+                    outline: Color.clear,
+                    outlineNorm: 0f,
+                    tileSizeUnits: textureTileSizeUnits,
+                    uvOffset: textureUvOffset);
+                mask.Apply(renderer);
+            }
+            else
+            {
+                renderer.sprite = _spriteFactory.CreateCircleSprite(circleRadiusUnits, circleColor, profile);
+            }
             ConfigureCenterCollider(circleObject);
+
+            var centerAreaUnits = PlanetSegmentPointsCalculator.CalculateCircleAreaUnits(circleRadiusUnits);
+            var centerPoints = PlanetSegmentPointsCalculator.CalculatePoints(centerAreaUnits, PlanetSegmentMaterial.Magma);
+            InitializeSegmentData(circleObject, PlanetSegmentMaterial.Magma, centerPoints, centerAreaUnits, isCoreSegment: true);
+            SetGeneratedOuterRadiusUnits(circleRadiusUnits);
         }
 
         private IEnumerator CreateLayersIncremental(Transform generatedRoot)
         {
-            var layerCount = layerRotations.Count;
+            var layerCount = ResolveLayerCountForGeneration();
             if (layerCount == 0)
             {
-                Debug.LogWarning("No planet layers generated: add at least one value in Per Layer Rotation.", this);
+                Debug.LogWarning("No planet layers generated: configure Layer Count Bounds or Per Layer Rotation.", this);
                 yield break;
             }
 
@@ -282,23 +331,66 @@ namespace App.Planets.Generation
                     var centerAngleDeg = currentStartAngleDeg + segmentArcAngleDeg * 0.5f;
 
                     var profile = _segmentProbabilitySelector.PickProfile(segmentPrefabs, placementContext);
-                    var profileId = profile ? profile.GetInstanceID() : 0;
-                    var angleKey = Mathf.RoundToInt(spriteSegmentAngleDeg * 1000f);
-                    var cacheKey = $"{profileId}:{angleKey}";
-
-                    if (!cachedSpritesByProfileAndAngle.TryGetValue(cacheKey, out var sprite))
-                    {
-                        sprite = _spriteFactory.CreateRingSegmentSprite(layerInnerRadius, layerOuterRadius, spriteSegmentAngleDeg, fallbackColor, profile);
-                        cachedSpritesByProfileAndAngle[cacheKey] = sprite;
-                        yield return null;
-                    }
 
                     var segmentObject = PlanetHierarchyUtility.CreateObjectFromProfile($"Segment_{segmentIndex}", layerObject.transform, profile);
                     segmentObject.transform.localRotation = Quaternion.Euler(0f, 0f, centerAngleDeg);
 
                     var renderer = PlanetHierarchyUtility.GetOrAddSpriteRenderer(segmentObject);
-                    renderer.sprite = sprite;
-                    ConfigureSegmentCollider(segmentObject);
+                    if (useMaskedSegmentRendering)
+                    {
+                        if (_maskedSegmentSprite == null)
+                            _maskedSegmentSprite = CreateMaskedSegmentSprite();
+
+                        renderer.sprite = _maskedSegmentSprite;
+                        segmentObject.transform.localScale = Vector3.one * (layerOuterRadius * 2f);
+
+                        var outerNorm = 0.5f;
+                        var innerNorm = layerOuterRadius <= 0.0001f
+                            ? 0f
+                            : Mathf.Clamp(layerInnerRadius / (layerOuterRadius * 2f), 0f, outerNorm);
+                        var fillColor = profile ? profile.Tint : fallbackColor;
+                        var segmentScale = profile ? profile.TextureScale * segmentTextureScale : segmentTextureScale;
+                        var outlineNorm = (segmentOutlineWidthPixels / Mathf.Max(1f, pixelsPerUnit * layerOuterRadius * 2f)) * 0.5f;
+                        var mask = segmentObject.GetComponent<PlanetSegmentRenderMask>();
+                        if (!mask)
+                            mask = segmentObject.AddComponent<PlanetSegmentRenderMask>();
+
+                        mask.Configure(
+                            innerNorm,
+                            outerNorm,
+                            spriteSegmentAngleDeg * 0.5f,
+                            profile ? profile.FillTexture : null,
+                            fillColor,
+                            segmentScale,
+                            enableSegmentOutline,
+                            segmentOutlineColor,
+                            outlineNorm,
+                            textureTileSizeUnits,
+                            textureUvOffset);
+                        mask.Apply(renderer);
+                        ConfigureSegmentCollider(segmentObject, innerNorm, outerNorm, segmentArcAngleDeg);
+                    }
+                    else
+                    {
+                        var profileId = profile ? profile.GetInstanceID() : 0;
+                        var angleKey = Mathf.RoundToInt(spriteSegmentAngleDeg * 1000f);
+                        var cacheKey = $"{profileId}:{angleKey}";
+
+                        if (!cachedSpritesByProfileAndAngle.TryGetValue(cacheKey, out var sprite))
+                        {
+                            sprite = _spriteFactory.CreateRingSegmentSprite(layerInnerRadius, layerOuterRadius, spriteSegmentAngleDeg, fallbackColor, profile);
+                            cachedSpritesByProfileAndAngle[cacheKey] = sprite;
+                            yield return null;
+                        }
+
+                        renderer.sprite = sprite;
+                        ConfigureSegmentCollider(segmentObject);
+                    }
+
+                    var material = profile ? profile.Material : PlanetSegmentMaterial.Stone;
+                    var segmentAreaUnits = PlanetSegmentPointsCalculator.CalculateRingSegmentAreaUnits(layerInnerRadius, layerOuterRadius, segmentArcAngleDeg);
+                    var segmentPoints = PlanetSegmentPointsCalculator.CalculatePoints(segmentAreaUnits, material);
+                    InitializeSegmentData(segmentObject, material, segmentPoints, segmentAreaUnits, isCoreSegment: false);
 
                     currentStartAngleDeg += segmentArcAngleDeg;
                     segmentIndex++;
@@ -310,6 +402,13 @@ namespace App.Planets.Generation
                 currentInnerRadius = outerRadius;
                 yield return null;
             }
+
+            SetGeneratedOuterRadiusUnits(currentInnerRadius);
+        }
+
+        public void SetGeneratedOuterRadiusUnits(float radiusUnits)
+        {
+            _generatedOuterRadiusUnits = radiusUnits > 0f ? Mathf.Max(0.01f, radiusUnits) : -1f;
         }
 
         private void ConfigureSpriteFactory()
@@ -338,6 +437,8 @@ namespace App.Planets.Generation
             layerThicknessUnits = Mathf.Max(0.05f, layerThicknessUnits);
             layerOverlapUnits = Mathf.Max(0f, layerOverlapUnits);
             segmentOverlapDegrees = Mathf.Max(0f, segmentOverlapDegrees);
+            coreTextureScale = Mathf.Clamp(coreTextureScale, 0.1f, 16f);
+            segmentTextureScale = Mathf.Clamp(segmentTextureScale, 0.1f, 16f);
             pixelsPerUnit = Mathf.Max(16f, pixelsPerUnit);
             textureTileSizeUnits = Mathf.Max(0.02f, textureTileSizeUnits);
             segmentOutlineWidthPixels = Mathf.Max(1f, segmentOutlineWidthPixels);
@@ -351,12 +452,37 @@ namespace App.Planets.Generation
             var normalizedCircleRadius = Mathf.Max(0.01f, circleRadiusUnits);
             var normalizedLayerThickness = Mathf.Max(0.05f, layerThicknessUnits);
             var normalizedLayerOverlap = Mathf.Max(0f, layerOverlapUnits);
-            var layerCount = layerRotations?.Count ?? 0;
+            var layerCount = ResolveEstimatedLayerCount();
 
             if (layerCount <= 0)
                 return normalizedCircleRadius;
 
             return normalizedCircleRadius + normalizedLayerThickness * layerCount + normalizedLayerOverlap * 0.5f;
+        }
+
+        private int ResolveLayerCountForGeneration()
+        {
+            var left = Mathf.Max(0, layerCountLeftBoundary);
+            var right = Mathf.Max(0, layerCountRightBoundary);
+
+            if (right <= 0)
+                return Mathf.Max(0, layerRotations?.Count ?? 0);
+
+            if (left > right)
+                (left, right) = (right, left);
+
+            return Random.Range(left, right + 1);
+        }
+
+        private int ResolveEstimatedLayerCount()
+        {
+            var left = Mathf.Max(0, layerCountLeftBoundary);
+            var right = Mathf.Max(0, layerCountRightBoundary);
+
+            if (right <= 0)
+                return Mathf.Max(0, layerRotations?.Count ?? 0);
+
+            return Mathf.Max(left, right);
         }
 
         private void ConfigureCenterCollider(GameObject target)
@@ -365,7 +491,8 @@ namespace App.Planets.Generation
             if (!collider)
                 collider = target.AddComponent<CircleCollider2D>();
 
-            collider.radius = Mathf.Max(0.01f, circleRadiusUnits);
+            var safeScaleX = Mathf.Max(0.0001f, Mathf.Abs(target.transform.localScale.x));
+            collider.radius = Mathf.Max(0.01f, circleRadiusUnits / safeScaleX);
             collider.offset = Vector2.zero;
             collider.isTrigger = false;
         }
@@ -377,6 +504,97 @@ namespace App.Planets.Generation
                 collider = target.AddComponent<PolygonCollider2D>();
 
             collider.isTrigger = false;
+        }
+
+        private static void ConfigureSegmentCollider(GameObject target, float innerNorm, float outerNorm, float angleDeg)
+        {
+            var collider = target.GetComponent<PolygonCollider2D>();
+            if (!collider)
+                collider = target.AddComponent<PolygonCollider2D>();
+
+            var halfAngleRad = Mathf.Deg2Rad * Mathf.Clamp(angleDeg * 0.5f, 0.1f, 179.9f);
+            var arcSteps = Mathf.Max(2, Mathf.CeilToInt(angleDeg / 12f));
+            var points = new List<Vector2>(arcSteps * 2 + 2);
+
+            for (var i = 0; i <= arcSteps; i++)
+            {
+                var t = i / (float)arcSteps;
+                var angle = Mathf.Lerp(-halfAngleRad, halfAngleRad, t);
+                points.Add(new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * outerNorm);
+            }
+
+            if (innerNorm > 0.0001f)
+            {
+                for (var i = arcSteps; i >= 0; i--)
+                {
+                    var t = i / (float)arcSteps;
+                    var angle = Mathf.Lerp(-halfAngleRad, halfAngleRad, t);
+                    points.Add(new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * innerNorm);
+                }
+            }
+            else
+            {
+                points.Add(Vector2.zero);
+            }
+
+            collider.pathCount = 1;
+            collider.SetPath(0, points.ToArray());
+            collider.isTrigger = false;
+        }
+
+        private static Sprite CreateMaskedSegmentSprite()
+        {
+            var texture = new Texture2D(4, 4, TextureFormat.RGBA32, mipChain: false)
+            {
+                name = "PlanetMaskBaseTexture",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            var pixels = new Color[16];
+            for (var i = 0; i < pixels.Length; i++)
+                pixels[i] = Color.white;
+            texture.SetPixels(pixels);
+            texture.Apply();
+            return Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), texture.width);
+        }
+
+        private void DestroyMaskedSegmentSprite()
+        {
+            if (_maskedSegmentSprite == null)
+                return;
+
+            _maskedSegmentTexture = _maskedSegmentSprite.texture;
+
+            if (Application.isPlaying)
+                Destroy(_maskedSegmentSprite);
+            else
+                DestroyImmediate(_maskedSegmentSprite);
+
+            _maskedSegmentSprite = null;
+
+            if (_maskedSegmentTexture == null)
+                return;
+
+            if (Application.isPlaying)
+                Destroy(_maskedSegmentTexture);
+            else
+                DestroyImmediate(_maskedSegmentTexture);
+
+            _maskedSegmentTexture = null;
+        }
+
+        private static void InitializeSegmentData(
+            GameObject segmentObject,
+            PlanetSegmentMaterial material,
+            int initialPoints,
+            float segmentAreaUnits,
+            bool isCoreSegment)
+        {
+            var segment = segmentObject.GetComponent<PlanetSegment>();
+            if (!segment)
+                segment = segmentObject.AddComponent<PlanetSegment>();
+
+            segment.InitializeGenerated(material, initialPoints, segmentAreaUnits, isCoreSegment);
         }
     }
 }

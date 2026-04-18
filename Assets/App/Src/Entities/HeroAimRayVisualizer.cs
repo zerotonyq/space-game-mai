@@ -109,8 +109,8 @@ namespace App.Entities
                 return;
             }
 
-            var origin = (Vector2)hero.position;
             var direction = _currentAimDirection.normalized;
+            var origin = (Vector2)hero.position + direction;
             var hit = Physics2D.Raycast(origin, direction, maxDistance, raycastMask);
 
             var endPoint = hit.collider != null

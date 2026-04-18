@@ -25,8 +25,11 @@ namespace App.Infrastructure.DI
             
             Container.BindInterfacesAndSelfTo<PlanetWorldMenuRuntimeService>().AsSingle().NonLazy();
             Container.BindInterfacesAndSelfTo<WorldCharacterSpawnRuntimeService>().AsSingle().NonLazy();
+            Container.BindInterfacesAndSelfTo<EntityNpcCombatRuntimeService>().AsSingle().NonLazy();
+            Container.BindInterfacesAndSelfTo<WorldLooseObjectsPersistenceService>().AsSingle().NonLazy();
             Container.BindInterfacesAndSelfTo<HeroPlanetCinemachineCameraRuntimeService>().AsSingle().NonLazy();
             Container.BindInterfacesAndSelfTo<HeroPlanetSwitchRuntimeService>().AsSingle().NonLazy();
+            Container.BindInterfacesAndSelfTo<HeroFlightAltitudeRuntimeService>().AsSingle().NonLazy();
             
             Container.BindInterfacesAndSelfTo<GameServicesInitializer>().AsSingle().NonLazy();
         }

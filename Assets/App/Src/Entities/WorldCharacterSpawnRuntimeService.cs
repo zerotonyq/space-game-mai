@@ -103,7 +103,9 @@ namespace App.Entities
 
         private UniTask OnWorldUnloaded(string worldId)
         {
-            SaveEntitiesState(worldId);
+            // WorldUnloaded is fired after planets are already removed; saving here may overwrite valid state.
+            if (_worldManager != null && _worldManager.ActivePlanetCount > 0)
+                SaveEntitiesState(worldId);
 
             if (_settings.destroyEntitiesOnWorldUnload)
                 DestroySpawnedEntities();
@@ -131,6 +133,7 @@ namespace App.Entities
                 return false;
 
             var spawnedAny = false;
+            var spawnedHero = false;
             foreach (var entry in state.entities)
             {
                 if (entry == null)
@@ -156,10 +159,28 @@ namespace App.Entities
                 instance.Movement.SetRotationDirection(
                     ParseDirection(entry.direction, OrbitRotationDirection.Clockwise));
                 instance.Movement.SnapToOrbitPosition();
+                ApplyLoadedEntityResources(instance, entry);
+                if (kind == SpawnedEntityKind.Hero)
+                    spawnedHero = true;
                 spawnedAny = true;
             }
 
-            return spawnedAny;
+            if (!spawnedHero && await TrySpawnHeroFromSnapshot(state.hero))
+            {
+                spawnedHero = true;
+                spawnedAny = true;
+            }
+
+            if (_settings != null && _settings.verboseLogging)
+            {
+                var heroEntry = state.entities.FirstOrDefault(entity => entity != null && entity.kind == (int)SpawnedEntityKind.Hero);
+                var loadedHeroPlanetId = heroEntry != null ? heroEntry.planetId : state.hero != null ? state.hero.planetId : null;
+                Debug.Log(
+                    $"Loaded entities state for world '{worldId}'. " +
+                    $"Entities: {state.entities.Count}, heroLoaded: {spawnedHero}, heroPlanetId: '{loadedHeroPlanetId ?? "null"}'.");
+            }
+
+            return spawnedAny && spawnedHero;
         }
 
         private bool CollectPlanets()
@@ -269,13 +290,16 @@ namespace App.Entities
             var movement = instance.GetComponent<PlanetOrbitMovement>();
 
             movement.SetOrbitCenter(planetGenerator.transform, planetGenerator.EstimatedOuterRadiusUnits);
+            EnsureEntityResourceComponents(instance);
 
             var runtime = new SpawnedEntityRuntime
             {
                 Kind = kind,
                 PlanetId = planetId,
                 GameObject = instance,
-                Movement = movement
+                Movement = movement,
+                MaterialInventory = instance.GetComponent<EntityMaterialInventory>(),
+                ProjectileStock = instance.GetComponent<EntityProjectileStock>()
             };
             AttachOrbitCenterTracking(runtime);
             _spawnedEntities.Add(runtime);
@@ -327,7 +351,15 @@ namespace App.Entities
             if (!_worldManager || string.IsNullOrWhiteSpace(_worldManager.CurrentWorldId))
                 return;
 
+            if (_worldManager.ActivePlanetCount <= 0)
+                return;
+
             SaveEntitiesState(_worldManager.CurrentWorldId);
+        }
+
+        public void SaveCurrentWorldEntitiesStateNow()
+        {
+            SaveCurrentWorldEntitiesState();
         }
 
         private void SaveEntitiesState(string worldId)
@@ -347,7 +379,7 @@ namespace App.Entities
 
             foreach (var entity in _spawnedEntities)
             {
-                if (entity == null || entity.Movement == null)
+                if (entity == null || entity.GameObject == null || !entity.GameObject.activeInHierarchy || entity.Movement == null)
                     continue;
 
                 var planetId = ResolveCurrentPlanetId(entity, planetIdsByCenter);
@@ -360,11 +392,48 @@ namespace App.Entities
                     altitudeFromSurface = entity.Movement.AltitudeFromSurface,
                     angularSpeedDegPerSecond = entity.Movement.AngularSpeedDegPerSecond,
                     angleDeg = entity.Movement.CurrentAngleDeg,
-                    direction = (int)entity.Movement.RotationDirection
+                    direction = (int)entity.Movement.RotationDirection,
+                    magmaPoints = entity.MaterialInventory ? entity.MaterialInventory.MagmaPoints : 0,
+                    metal1Points = entity.MaterialInventory ? entity.MaterialInventory.Metal1Points : 0,
+                    metal2Points = entity.MaterialInventory ? entity.MaterialInventory.Metal2Points : 0,
+                    metal3Points = entity.MaterialInventory ? entity.MaterialInventory.Metal3Points : 0,
+                    rocketStock = entity.ProjectileStock ? entity.ProjectileStock.Rockets : 0,
+                    drillType1Stock = entity.ProjectileStock ? entity.ProjectileStock.DrillType1 : 0,
+                    drillType2Stock = entity.ProjectileStock ? entity.ProjectileStock.DrillType2 : 0,
+                    drillType3Stock = entity.ProjectileStock ? entity.ProjectileStock.DrillType3 : 0
                 });
+
+                if (entity.Kind == SpawnedEntityKind.Hero)
+                {
+                    state.hero = new HeroSnapshot
+                    {
+                        hasValue = !string.IsNullOrWhiteSpace(planetId),
+                        planetId = planetId,
+                        altitudeFromSurface = entity.Movement.AltitudeFromSurface,
+                        angularSpeedDegPerSecond = entity.Movement.AngularSpeedDegPerSecond,
+                        angleDeg = entity.Movement.CurrentAngleDeg,
+                        direction = (int)entity.Movement.RotationDirection,
+                        magmaPoints = entity.MaterialInventory ? entity.MaterialInventory.MagmaPoints : 0,
+                        metal1Points = entity.MaterialInventory ? entity.MaterialInventory.Metal1Points : 0,
+                        metal2Points = entity.MaterialInventory ? entity.MaterialInventory.Metal2Points : 0,
+                        metal3Points = entity.MaterialInventory ? entity.MaterialInventory.Metal3Points : 0,
+                        rocketStock = entity.ProjectileStock ? entity.ProjectileStock.Rockets : 0,
+                        drillType1Stock = entity.ProjectileStock ? entity.ProjectileStock.DrillType1 : 0,
+                        drillType2Stock = entity.ProjectileStock ? entity.ProjectileStock.DrillType2 : 0,
+                        drillType3Stock = entity.ProjectileStock ? entity.ProjectileStock.DrillType3 : 0
+                    };
+                }
             }
 
             File.WriteAllText(statePath, JsonUtility.ToJson(state, true));
+
+            if (_settings != null && _settings.verboseLogging)
+            {
+                var heroPlanetId = state.hero != null && state.hero.hasValue ? state.hero.planetId : "null";
+                Debug.Log(
+                    $"Saved entities state for world '{worldId}'. " +
+                    $"Entities: {state.entities.Count}, heroPlanetId: '{heroPlanetId ?? "null"}', path: {statePath}");
+            }
         }
 
         private Dictionary<Transform, string> BuildPlanetIdsByCenterMap()
@@ -389,7 +458,7 @@ namespace App.Entities
             return result;
         }
 
-        private static string ResolveCurrentPlanetId(
+        private string ResolveCurrentPlanetId(
             SpawnedEntityRuntime entity,
             Dictionary<Transform, string> planetIdsByCenter)
         {
@@ -397,7 +466,42 @@ namespace App.Entities
             if (orbitCenter && planetIdsByCenter != null && planetIdsByCenter.TryGetValue(orbitCenter, out var currentPlanetId))
                 return currentPlanetId;
 
+            if (!string.IsNullOrWhiteSpace(entity.PlanetId))
+                return entity.PlanetId;
+
+            var position = entity.GameObject ? entity.GameObject.transform.position : entity.Movement.transform.position;
+            if (TryResolveNearestPlanetId(position, out var nearestPlanetId))
+                return nearestPlanetId;
+
             return entity.PlanetId;
+        }
+
+        private bool TryResolveNearestPlanetId(Vector3 position, out string planetId)
+        {
+            planetId = null;
+            if (!_worldManager)
+                return false;
+
+            _planetsBuffer.Clear();
+            if (_worldManager.GetActivePlanets(_planetsBuffer) <= 0)
+                return false;
+
+            var nearestDistanceSqr = float.MaxValue;
+            for (var i = 0; i < _planetsBuffer.Count; i++)
+            {
+                var binding = _planetsBuffer[i];
+                if (!binding.generator || string.IsNullOrWhiteSpace(binding.planetId))
+                    continue;
+
+                var distanceSqr = (binding.generator.transform.position - position).sqrMagnitude;
+                if (distanceSqr >= nearestDistanceSqr)
+                    continue;
+
+                nearestDistanceSqr = distanceSqr;
+                planetId = binding.planetId;
+            }
+
+            return !string.IsNullOrWhiteSpace(planetId);
         }
 
         private void OnEntityOrbitCenterChanged(SpawnedEntityRuntime entity, Transform orbitCenter)
@@ -491,10 +595,93 @@ namespace App.Entities
         private void NotifyHeroOrbitChanged() =>
             HeroOrbitChanged?.Invoke(_currentHero, _currentHeroOrbitMovement);
 
+        private static void EnsureEntityResourceComponents(GameObject instance)
+        {
+            if (!instance)
+                return;
+
+            if (!instance.GetComponent<EntityMaterialInventory>())
+                instance.AddComponent<EntityMaterialInventory>();
+
+            if (!instance.GetComponent<EntityProjectileStock>())
+                instance.AddComponent<EntityProjectileStock>();
+        }
+
+        private static void ApplyLoadedEntityResources(SpawnedEntityRuntime runtime, EntityStateEntry entry)
+        {
+            if (runtime == null || entry == null)
+                return;
+
+            runtime.MaterialInventory?.SetPoints(
+                entry.magmaPoints,
+                entry.metal1Points,
+                entry.metal2Points,
+                entry.metal3Points);
+
+            runtime.ProjectileStock?.SetCounts(
+                entry.rocketStock,
+                entry.drillType1Stock,
+                entry.drillType2Stock,
+                entry.drillType3Stock);
+        }
+
+        private async UniTask<bool> TrySpawnHeroFromSnapshot(HeroSnapshot snapshot)
+        {
+            if (snapshot == null || !snapshot.hasValue || string.IsNullOrWhiteSpace(snapshot.planetId))
+                return false;
+
+            if (!_worldManager.TryGetPlanetGeneratorById(snapshot.planetId, out var planetGenerator))
+                return false;
+
+            var runtime = await SpawnEntity(SpawnedEntityKind.Hero, planetGenerator, snapshot.planetId);
+            if (runtime == null || runtime.Movement == null)
+                return false;
+
+            runtime.Movement.SetAltitudeFromSurface(Mathf.Max(0f, snapshot.altitudeFromSurface));
+            runtime.Movement.SetAngularSpeedDegPerSecond(Mathf.Max(0.01f, snapshot.angularSpeedDegPerSecond));
+            runtime.Movement.SetCurrentAngleDeg(snapshot.angleDeg);
+            runtime.Movement.SetRotationDirection(ParseDirection(snapshot.direction, OrbitRotationDirection.Clockwise));
+            runtime.Movement.SnapToOrbitPosition();
+
+            ApplyLoadedEntityResources(runtime, new EntityStateEntry
+            {
+                magmaPoints = snapshot.magmaPoints,
+                metal1Points = snapshot.metal1Points,
+                metal2Points = snapshot.metal2Points,
+                metal3Points = snapshot.metal3Points,
+                rocketStock = snapshot.rocketStock,
+                drillType1Stock = snapshot.drillType1Stock,
+                drillType2Stock = snapshot.drillType2Stock,
+                drillType3Stock = snapshot.drillType3Stock
+            });
+
+            return true;
+        }
+
         [Serializable]
         private class WorldEntitiesState
         {
             public List<EntityStateEntry> entities = new();
+            public HeroSnapshot hero;
+        }
+
+        [Serializable]
+        private class HeroSnapshot
+        {
+            public bool hasValue;
+            public string planetId;
+            public float altitudeFromSurface;
+            public float angularSpeedDegPerSecond;
+            public float angleDeg;
+            public int direction;
+            public int magmaPoints;
+            public int metal1Points;
+            public int metal2Points;
+            public int metal3Points;
+            public int rocketStock;
+            public int drillType1Stock;
+            public int drillType2Stock;
+            public int drillType3Stock;
         }
 
         [Serializable]
@@ -506,6 +693,14 @@ namespace App.Entities
             public float angularSpeedDegPerSecond;
             public float angleDeg;
             public int direction;
+            public int magmaPoints;
+            public int metal1Points;
+            public int metal2Points;
+            public int metal3Points;
+            public int rocketStock;
+            public int drillType1Stock;
+            public int drillType2Stock;
+            public int drillType3Stock;
         }
 
         private sealed class SpawnedEntityRuntime
@@ -514,6 +709,8 @@ namespace App.Entities
             public string PlanetId;
             public GameObject GameObject;
             public PlanetOrbitMovement Movement;
+            public EntityMaterialInventory MaterialInventory;
+            public EntityProjectileStock ProjectileStock;
             public Action<Transform> OrbitCenterChangedHandler;
         }
     }

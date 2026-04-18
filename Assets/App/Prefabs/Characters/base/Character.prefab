@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 760208292105536746}
   - component: {fileID: 3395394642586057575}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Circle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -100,7 +100,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7531087888527478804}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: shootPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -116,7 +116,7 @@ Transform:
   m_GameObject: {fileID: 4319183731935819821}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -1.13, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -134,7 +134,8 @@ GameObject:
   - component: {fileID: 9158639627954586062}
   - component: {fileID: 1471485474392219947}
   - component: {fileID: 9059113590709388697}
-  m_Layer: 0
+  - component: {fileID: 6275301510949226972}
+  m_Layer: 6
   m_Name: Character
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -187,8 +188,10 @@ MonoBehaviour:
   projectileSelector: {fileID: 9158639627954586062}
   orbitMovement: {fileID: 9059113590709388697}
   projectileSpawnPoint: {fileID: 7531087888527478804}
-  projectilesParent: {fileID: 0}
-  autoResolveDependencies: 1
+  rocketProjectilePrefab: {fileID: 3834691452710127157, guid: c1324163fe9609b428ec3fc674a32602, type: 3}
+  drillProjectileType1Prefab: {fileID: 7286727350544242736, guid: 227971237c6e1cf43ae9be6f6e4d5603, type: 3}
+  drillProjectileType2Prefab: {fileID: 7286727350544242736, guid: 0f43490cf8152024bb402f5ea97287bd, type: 3}
+  drillProjectileType3Prefab: {fileID: 7286727350544242736, guid: 993d52de09e33004a9485a8ac51c6c89, type: 3}
 --- !u!114 &9059113590709388697
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -202,6 +205,43 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::App.Entities.PlanetOrbitMovement
   angularSpeedDegPerSecond: 25
-  altitudeFromSurface: 2
+  altitudeFromSurface: 1
+  minAltitudeFromSurface: 1
   rotationDirection: -1
   keepCurrentAngleWhenCenterChanges: 1
+--- !u!58 &6275301510949226972
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4875895667497159989}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_Radius: 0.5

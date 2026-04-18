@@ -89,3 +89,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 34006533288299c448cb2825600b977f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::App.Entities.EntityPeacefulTag
+  mineShotIntervalSeconds: 5
+  resourceProbeDistance: 64
+  resourceProbeMask:
+    serializedVersion: 2
+    m_Bits: 115
+  autoCraftDrillAmmo: 1
+  transferCheckIntervalSeconds: 10
+  transferChancePerCheck: 0.2
+  transferSpeedUnitsPerSecond: 8
+  transferArrivalThresholdUnits: 0.35

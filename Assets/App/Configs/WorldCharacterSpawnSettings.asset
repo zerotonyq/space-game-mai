@@ -30,6 +30,10 @@ MonoBehaviour:
     m_SubObjectType: 
     m_SubObjectGUID: 
     m_EditorAssetChanged: 0
+  drillType1Prefab: {fileID: 7286727350544242736, guid: 227971237c6e1cf43ae9be6f6e4d5603, type: 3}
+  drillType2Prefab: {fileID: 7286727350544242736, guid: 0f43490cf8152024bb402f5ea97287bd, type: 3}
+  drillType3Prefab: {fileID: 7286727350544242736, guid: 993d52de09e33004a9485a8ac51c6c89, type: 3}
+  minedMaterialChunkPrefab: {fileID: 951427464673391740, guid: 8f1fee88accc4d54381740083069eb57, type: 3}
   minEntitiesPerPlanet: 1
   maxEntitiesPerPlanet: 5
   perPlanetCountJitter: 1
@@ -43,5 +47,7 @@ MonoBehaviour:
   heroRotationDirection: -1
   randomizeNpcDirection: 1
   entitiesStateFileName: entities_state.json
+  worldObjectsStateFileName: world_objects_state.json
   destroyEntitiesOnWorldUnload: 1
+  destroyWorldObjectsOnWorldUnload: 1
   verboseLogging: 1

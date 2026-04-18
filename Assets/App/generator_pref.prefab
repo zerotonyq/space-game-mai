@@ -44,11 +44,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b42b637063bba0c4e9c83c06b2f226c1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::App.ConcentricSegmentLayerGenerator
-  circleRadiusUnits: 1
+  circleRadiusUnits: 1.55
   circleColor: {r: 1, g: 1, b: 1, a: 1}
   segmentArcLengthMinUnits: 2.61
   segmentArcLengthMaxUnits: 5
-  layerThicknessUnits: 0.5
+  layerThicknessUnits: 0.74
   layerOverlapUnits: 0.002
   segmentOverlapDegrees: 0.5
   layerRotations:
@@ -57,18 +57,25 @@ MonoBehaviour:
   - Degrees: 0
   - Degrees: 0
   - Degrees: 0
+  layerCountLeftBoundary: 5
+  layerCountRightBoundary: 18
   centerCirclePrefabs:
   - {fileID: 2202621090895322489, guid: 576b46c4d0e9af44eb574f03dcfc759f, type: 3}
   segmentPrefabs:
   - {fileID: 3292695198949022519, guid: 04db96c8909e86848af3c71340108f6e, type: 3}
   - {fileID: 3292695198949022519, guid: fae379d68666d5e40b2fb4a64a742cb1, type: 3}
-  pixelsPerUnit: 128
+  - {fileID: 3292695198949022519, guid: 101149dff19438341ab9dec79679d08a, type: 3}
+  - {fileID: 3292695198949022519, guid: 0332bd4c47d76384b8c649430fc4bc96, type: 3}
+  pixelsPerUnit: 512
   filterMode: 0
   textureTileSizeUnits: 0.4
   textureUvOffset: {x: 0, y: 0}
   enableSegmentOutline: 1
   segmentOutlineColor: {r: 1, g: 1, b: 1, a: 1}
   segmentOutlineWidthPixels: 1
+  useMaskedSegmentRendering: 1
+  coreTextureScale: 1
+  segmentTextureScale: 1
   editorFrameBudgetMs: 4
   runtimeFrameBudgetMs: 4
   segmentBatchSize: 32

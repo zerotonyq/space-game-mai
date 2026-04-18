@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 3292695198949022519}
   - component: {fileID: 2441029118349599074}
   m_Layer: 0
-  m_Name: metal ore
+  m_Name: cobalt ore
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -46,7 +46,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::App.SegmentTextureProfile
   fillTexture: {fileID: 2800000, guid: a6ef58faa6242694787f0a374faf02d4, type: 3}
-  tint: {r: 1, g: 1, b: 1, a: 1}
+  tint: {r: 1, g: 0, b: 0.59289217, a: 1}
+  material: 3
 --- !u!114 &2441029118349599074
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -59,7 +60,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f46a0d6ba5513104fa11bc7756e3df80, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::App.Planets.GfxGen.SegmentSpawnProbabilityRule
-  minTotalLayersExclusive: 2
-  minCoreRadiusExclusive: 1
-  minLayerPercentile: 0
-  maxLayerPercentile: 56.3
+  minTotalLayersExclusive: 5
+  minCoreRadiusExclusive: 3.01
+  minLayerPercentile: 39.6
+  maxLayerPercentile: 62.5

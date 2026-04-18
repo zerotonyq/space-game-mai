@@ -1,4 +1,5 @@
 using App.Infrastructure.DI;
+using App.Entities;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
@@ -13,6 +14,10 @@ namespace App.Entities.Config
         public AssetReferenceGameObject heroAssetReference;
         public AssetReferenceGameObject peacefulAssetReference;
         public AssetReferenceGameObject villainAssetReference;
+        public DrillProjectile drillType1Prefab;
+        public DrillProjectile drillType2Prefab;
+        public DrillProjectile drillType3Prefab;
+        public MinedMaterialChunk minedMaterialChunkPrefab;
 
         [Header("Per Planet Population")]
         [Min(0)] public int minEntitiesPerPlanet = 1;
@@ -32,7 +37,9 @@ namespace App.Entities.Config
 
         [Header("Persistence")]
         public string entitiesStateFileName = "entities_state.json";
+        public string worldObjectsStateFileName = "world_objects_state.json";
         public bool destroyEntitiesOnWorldUnload = true;
+        public bool destroyWorldObjectsOnWorldUnload = true;
         public bool verboseLogging = true;
     }
 }

@@ -18,21 +18,27 @@ namespace App.Planets.Persistence
         private readonly PlanetWorldMenuController _context;
         private readonly IGameplayCameraZoomRuntimeService _cameraZoomService;
         private readonly IGameplayPlanetSwitchRuntimeService _planetSwitchService;
+        private readonly IGameplayHeroFlightAltitudeRuntimeService _flightAltitudeService;
         private bool _operationInProgress;
 
         [Inject] private SignalBus _signalBus;
         private readonly WorldCharacterSpawnRuntimeService _characterSpawnRuntimeService;
+        private readonly WorldLooseObjectsPersistenceService _worldLooseObjectsPersistenceService;
 
         public PlanetWorldMenuRuntimeService(
             PlanetWorldMenuController context,
             [InjectOptional] IGameplayCameraZoomRuntimeService cameraZoomService,
             [InjectOptional] IGameplayPlanetSwitchRuntimeService planetSwitchService,
-            WorldCharacterSpawnRuntimeService characterSpawnRuntimeService)
+            [InjectOptional] IGameplayHeroFlightAltitudeRuntimeService flightAltitudeService,
+            WorldCharacterSpawnRuntimeService characterSpawnRuntimeService,
+            [InjectOptional] WorldLooseObjectsPersistenceService worldLooseObjectsPersistenceService)
         {
             _characterSpawnRuntimeService = characterSpawnRuntimeService;
+            _worldLooseObjectsPersistenceService = worldLooseObjectsPersistenceService;
             _context = context;
             _cameraZoomService = cameraZoomService;
             _planetSwitchService = planetSwitchService;
+            _flightAltitudeService = flightAltitudeService;
         }
 
         public UniTask Initialize()
@@ -54,7 +60,17 @@ namespace App.Planets.Persistence
                 OnExitWorldRequested,
                 OnZoomInRequested,
                 OnZoomOutRequested,
+                OnIncreaseFlightAltitudeRequested,
+                OnDecreaseFlightAltitudeRequested,
                 OnToggleOrbitDirectionRequested,
+                OnShootRocketRequested,
+                OnCreateRocketRequested,
+                OnShootDrillType1Requested,
+                OnCreateDrillType1Requested,
+                OnShootDrillType2Requested,
+                OnCreateDrillType2Requested,
+                OnShootDrillType3Requested,
+                OnCreateDrillType3Requested,
                 OnAimDirectionChanged,
                 OnAimReleased);
 
@@ -66,8 +82,11 @@ namespace App.Planets.Persistence
             return UniTask.CompletedTask;
         }
 
-        private void OnHeroSpawned(EntityHeroTag obj) => obj.GetComponent<HeroAimRayVisualizer>()
-            .SetAimJoystick(_context.GameplayCanvasController.AimJoystick);
+        private void OnHeroSpawned(EntityHeroTag obj)
+        {
+            obj.GetComponent<HeroAimRayVisualizer>()?.SetAimJoystick(_context.GameplayCanvasController.AimJoystick);
+            SyncGameplayResourceAndProjectileCounts();
+        }
 
         public UniTask PostInitialize()
         {
@@ -89,10 +108,14 @@ namespace App.Planets.Persistence
 
             SyncBusyState();
             UpdateLoadingProgress();
+            SyncGameplayResourceAndProjectileCounts();
         }
 
         private void OnNewGameRequested(PlanetWorldManager.WorldSize worldSize)
         {
+            _characterSpawnRuntimeService?.SaveCurrentWorldEntitiesStateNow();
+            _worldLooseObjectsPersistenceService?.SaveCurrentWorldObjectsStateNow();
+
             RequestWorldOperation(
                 async () =>
                 {
@@ -108,6 +131,9 @@ namespace App.Planets.Persistence
             if (string.IsNullOrWhiteSpace(worldId))
                 return;
 
+            _characterSpawnRuntimeService?.SaveCurrentWorldEntitiesStateNow();
+            _worldLooseObjectsPersistenceService?.SaveCurrentWorldObjectsStateNow();
+
             RequestWorldOperation(
                 () => _context.WorldManager.LoadWorldAsync(worldId, saveAndUnloadCurrent: true),
                 UiState.InGame,
@@ -116,6 +142,10 @@ namespace App.Planets.Persistence
 
         private void OnExitWorldRequested()
         {
+            _characterSpawnRuntimeService?.SaveCurrentWorldEntitiesStateNow();
+            _worldLooseObjectsPersistenceService?.SaveCurrentWorldObjectsStateNow();
+            SyncGameplayResourceAndProjectileCounts();
+
             RequestWorldOperation(
                 () => _context.WorldManager.UnloadCurrentWorldAsync(_context.SaveBeforeUnloadCurrentWorld),
                 UiState.MainMenu,
@@ -132,6 +162,16 @@ namespace App.Planets.Persistence
             _cameraZoomService?.ZoomOut();
         }
 
+        private void OnIncreaseFlightAltitudeRequested()
+        {
+            _flightAltitudeService?.IncreaseFlightAltitude();
+        }
+
+        private void OnDecreaseFlightAltitudeRequested()
+        {
+            _flightAltitudeService?.DecreaseFlightAltitude();
+        }
+
         private void OnToggleOrbitDirectionRequested()
         {
             _planetSwitchService?.ToggleOrbitDirection();
@@ -145,6 +185,103 @@ namespace App.Planets.Persistence
         private void OnAimReleased()
         {
             _planetSwitchService?.TrySwitchToSelectedPlanet();
+        }
+
+        private void OnShootRocketRequested()
+        {
+            TryShootIfAvailable(
+                stock => stock.Rockets > 0,
+                shooter => shooter.ShootRocket(),
+                stock => stock.TryConsumeRocket());
+        }
+
+        private void OnCreateRocketRequested()
+        {
+            TryCreateProjectile((stock, inventory) => stock.TryCreateRocket(inventory));
+        }
+
+        private void OnShootDrillType1Requested()
+        {
+            TryShootIfAvailable(
+                stock => stock.DrillType1 > 0,
+                shooter => shooter.ShootDrillType1(),
+                stock => stock.TryConsumeDrillType1());
+        }
+
+        private void OnCreateDrillType1Requested()
+        {
+            TryCreateProjectile((stock, _) => stock.TryCreateDrillType1());
+        }
+
+        private void OnShootDrillType2Requested()
+        {
+            TryShootIfAvailable(
+                stock => stock.DrillType2 > 0,
+                shooter => shooter.ShootDrillType2(),
+                stock => stock.TryConsumeDrillType2());
+        }
+
+        private void OnCreateDrillType2Requested()
+        {
+            TryCreateProjectile((stock, inventory) => stock.TryCreateDrillType2(inventory));
+        }
+
+        private void OnShootDrillType3Requested()
+        {
+            TryShootIfAvailable(
+                stock => stock.DrillType3 > 0,
+                shooter => shooter.ShootDrillType3(),
+                stock => stock.TryConsumeDrillType3());
+        }
+
+        private void OnCreateDrillType3Requested()
+        {
+            TryCreateProjectile((stock, inventory) => stock.TryCreateDrillType3(inventory));
+        }
+
+        private void TryShootIfAvailable(
+            Func<EntityProjectileStock, bool> hasAmmo,
+            Func<CharacterProjectileShooter, bool> shootAction,
+            Func<EntityProjectileStock, bool> consumeAction)
+        {
+            if (hasAmmo == null || shootAction == null || consumeAction == null)
+                return;
+
+            var hero = _characterSpawnRuntimeService.CurrentHero;
+            if (!hero)
+                return;
+
+            var stock = hero.GetComponent<EntityProjectileStock>();
+            var shooter = hero.GetComponent<CharacterProjectileShooter>();
+            if (!stock || !shooter)
+                return;
+
+            if (!hasAmmo(stock))
+                return;
+
+            if (!shootAction(shooter))
+                return;
+
+            if (consumeAction(stock))
+                SyncGameplayResourceAndProjectileCounts();
+        }
+
+        private void TryCreateProjectile(Func<EntityProjectileStock, EntityMaterialInventory, bool> createAction)
+        {
+            if (createAction == null)
+                return;
+
+            var hero = _characterSpawnRuntimeService.CurrentHero;
+            if (!hero)
+                return;
+
+            var stock = hero.GetComponent<EntityProjectileStock>();
+            var inventory = hero.GetComponent<EntityMaterialInventory>();
+            if (!stock || !inventory)
+                return;
+
+            if (createAction(stock, inventory))
+                SyncGameplayResourceAndProjectileCounts();
         }
 
         private void RequestWorldOperation(Func<UniTask> operation, UiState stateOnComplete,
@@ -175,6 +312,7 @@ namespace App.Planets.Persistence
                     _context.MenuCanvasController?.RefreshWorldList();
 
                 ApplyUiState(stateOnComplete);
+                SyncGameplayResourceAndProjectileCounts();
             }
             catch (Exception exception)
             {
@@ -196,6 +334,37 @@ namespace App.Planets.Persistence
 
             _context.MenuCanvasController?.SetVisible(showMainMenu);
             _context.GameplayCanvasController?.SetVisible(showInGame);
+
+            if (showMainMenu)
+                _context.GameplayCanvasController?.ResetResourceAndProjectileCounts();
+        }
+
+        private void SyncGameplayResourceAndProjectileCounts()
+        {
+            var gameplayCanvas = _context?.GameplayCanvasController;
+            if (gameplayCanvas == null)
+                return;
+
+            var hero = _characterSpawnRuntimeService?.CurrentHero;
+            if (!hero)
+            {
+                gameplayCanvas.ResetResourceAndProjectileCounts();
+                return;
+            }
+
+            var stock = hero.GetComponent<EntityProjectileStock>();
+            gameplayCanvas.SetProjectileCounts(
+                stock ? stock.Rockets : 0,
+                stock ? stock.DrillType1 : 0,
+                stock ? stock.DrillType2 : 0,
+                stock ? stock.DrillType3 : 0);
+
+            var inventory = hero.GetComponent<EntityMaterialInventory>();
+            gameplayCanvas.SetResourceCounts(
+                inventory ? inventory.MagmaPoints : 0,
+                inventory ? inventory.Metal1Points : 0,
+                inventory ? inventory.Metal2Points : 0,
+                inventory ? inventory.Metal3Points : 0);
         }
 
         private void SetCanvasInteractable(bool isInteractable)

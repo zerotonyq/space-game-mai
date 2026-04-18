@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using App.Planets.Generation;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 namespace App.Planets.Persistence
@@ -130,13 +131,23 @@ namespace App.Planets.Persistence
         [ContextMenu("Save Current World (Force)")]
         public void SaveCurrentWorldForce()
         {
-            SaveCurrentWorld(runtimeAware: false);
+            SaveCurrentWorldForceAsync().Forget(LogSaveException);
         }
 
         [ContextMenu("Save Current World (Runtime If Changed)")]
         public void SaveCurrentWorldRuntimeAware()
         {
-            SaveCurrentWorld(runtimeAware: true);
+            SaveCurrentWorldRuntimeAwareAsync().Forget(LogSaveException);
+        }
+
+        public UniTask SaveCurrentWorldForceAsync()
+        {
+            return SaveCurrentWorldAsync(runtimeAware: false);
+        }
+
+        public UniTask SaveCurrentWorldRuntimeAwareAsync()
+        {
+            return SaveCurrentWorldAsync(runtimeAware: true);
         }
 
         [ContextMenu("Load Current World")]
@@ -200,7 +211,7 @@ namespace App.Planets.Persistence
             }
 
             if (saveCurrentBeforeSwitch && !string.IsNullOrWhiteSpace(currentWorldId))
-                SaveCurrentWorld(runtimeAware: true);
+                SaveCurrentWorldRuntimeAware();
 
             currentWorldId = worldId;
 
@@ -208,7 +219,7 @@ namespace App.Planets.Persistence
                 LoadCurrentWorld();
         }
 
-        private void SaveCurrentWorld(bool runtimeAware)
+        private async UniTask SaveCurrentWorldAsync(bool runtimeAware)
         {
             if (string.IsNullOrWhiteSpace(currentWorldId))
             {
@@ -247,14 +258,14 @@ namespace App.Planets.Persistence
                     verboseLogging);
 
                 if (runtimeAware)
-                    persistence.SaveGeneratedCacheRuntimeAware();
+                    await persistence.SaveGeneratedCacheRuntimeAwareAsync();
                 else
-                    persistence.SaveGeneratedCache();
+                    await persistence.SaveGeneratedCacheAsync();
 
                 saved++;
             }
 
-            SaveWorldManifest(currentWorldId);
+            await SaveWorldManifestAsync(currentWorldId);
 
             if (verboseLogging)
                 Debug.Log($"World '{currentWorldId}' saved. Planets saved: {saved}, skipped: {skipped}, runtimeAware: {runtimeAware}.", this);
@@ -265,7 +276,7 @@ namespace App.Planets.Persistence
             if (!Application.isPlaying || !autoSaveAfterRuntimeGeneration)
                 return;
 
-            SaveCurrentWorld(runtimeAware: true);
+            SaveCurrentWorldRuntimeAware();
         }
 
         private void SubscribeToGenerators()
@@ -341,10 +352,9 @@ namespace App.Planets.Persistence
             return Path.Combine(worldsRootFolderName, worldId, cacheFolderName);
         }
 
-        private void SaveWorldManifest(string worldId)
+        private async UniTask SaveWorldManifestAsync(string worldId)
         {
             var worldRoot = Path.Combine(Application.persistentDataPath, worldsRootFolderName, worldId);
-            Directory.CreateDirectory(worldRoot);
 
             var manifest = new WorldManifest
             {
@@ -365,7 +375,23 @@ namespace App.Planets.Persistence
             }
 
             var manifestPath = Path.Combine(worldRoot, "world_manifest.json");
-            File.WriteAllText(manifestPath, JsonUtility.ToJson(manifest, true), Encoding.UTF8);
+            var json = JsonUtility.ToJson(manifest, true);
+
+            await UniTask.SwitchToThreadPool();
+            try
+            {
+                Directory.CreateDirectory(worldRoot);
+                File.WriteAllText(manifestPath, json, Encoding.UTF8);
+            }
+            finally
+            {
+                await UniTask.SwitchToMainThread();
+            }
+        }
+
+        private static void LogSaveException(System.Exception exception)
+        {
+            Debug.LogException(exception);
         }
 
         private static string GetHierarchyPath(Transform transform)

@@ -37,6 +37,8 @@ namespace App.Planets.Persistence
         [SerializeField] [Min(0f)] private float largeWorldSpawnRadius = 50f;
         [SerializeField] [Min(0f)] private float minPlanetSeparationPadding = 1f;
         [SerializeField] [Min(1)] private int maxSpawnPositionAttemptsPerPlanet = 256;
+        [SerializeField] [Min(0)] private int maxSpawnRadiusExpansionsPerPlanet = 6;
+        [SerializeField] [Range(1.01f, 3f)] private float spawnRadiusExpansionFactor = 1.35f;
         [SerializeField] private string worldManifestFileName = "planet_world_manifest.json";
 
         [Header("Flow")]
@@ -108,7 +110,7 @@ namespace App.Planets.Persistence
                 }
 
                 if (saveCurrentBeforeCreate && HasManagedPlanetsInScene())
-                    worldService.SaveCurrentWorldRuntimeAware();
+                    await worldService.SaveCurrentWorldRuntimeAwareAsync();
 
                 DestroyAllActivePlanets();
                 worldService.SwitchWorld(worldId, saveCurrentBeforeSwitch: false, loadAfterSwitch: false);
@@ -129,13 +131,14 @@ namespace App.Planets.Persistence
                         continue;
                     }
 
-                    if (!TryApplyNonOverlappingSpawnPosition(generator, spawnRadius))
+                    if (!TryApplyNonOverlappingSpawnPositionWithExpansion(generator, ref spawnRadius))
                     {
                         if (verboseLogging)
                         {
                             Debug.LogWarning(
-                                $"Could not place planet '{planetId}' without overlap inside radius {spawnRadius}. " +
-                                $"Attempts: {Mathf.Max(1, maxSpawnPositionAttemptsPerPlanet)}. Planet will be skipped.",
+                                $"Could not place planet '{planetId}' without overlap. " +
+                                $"Final radius: {spawnRadius:F2}, attempts per radius: {Mathf.Max(1, maxSpawnPositionAttemptsPerPlanet)}, " +
+                                $"radius expansions: {Mathf.Max(0, maxSpawnRadiusExpansionsPerPlanet)}. Planet will be skipped.",
                                 this);
                         }
 
@@ -158,7 +161,7 @@ namespace App.Planets.Persistence
                 }
 
                 if (saveAfterCreate)
-                    worldService.SaveCurrentWorldForce();
+                    await worldService.SaveCurrentWorldForceAsync();
 
                 var manifestPath = SaveManagerWorldManifest(worldId, worldSize, _activePlanets);
                 LogLoadPayload(worldId, worldSize, manifestPath, _activePlanets.Count);
@@ -193,7 +196,7 @@ namespace App.Planets.Persistence
                 }
 
                 if (saveAndUnloadCurrent)
-                    UnloadCurrentWorldInternal(saveBeforeUnload: true);
+                    await UnloadCurrentWorldInternalAsync(saveBeforeUnload: true);
                 else
                     DestroyAllActivePlanets();
 
@@ -256,7 +259,7 @@ namespace App.Planets.Persistence
                 SetWorldLoadProgress(0f);
                 var unloadedWorldId = CurrentWorldId;
 
-                UnloadCurrentWorldInternal(saveBeforeUnload);
+                await UnloadCurrentWorldInternalAsync(saveBeforeUnload);
                 await InvokeWorldEventAsync(WorldUnloaded, unloadedWorldId);
 
                 SetWorldLoadProgress(1f);
@@ -398,8 +401,19 @@ namespace App.Planets.Persistence
             if (!worldService)
                 return;
 
+            DestroyAllActivePlanets();
+
+            if (verboseLogging)
+                Debug.Log("Current world unloaded.", this);
+        }
+
+        private async UniTask UnloadCurrentWorldInternalAsync(bool saveBeforeUnload)
+        {
+            if (!worldService)
+                return;
+
             if (saveBeforeUnload && HasManagedPlanetsInScene())
-                worldService.SaveCurrentWorldRuntimeAware();
+                await worldService.SaveCurrentWorldRuntimeAwareAsync();
 
             DestroyAllActivePlanets();
 
@@ -495,6 +509,36 @@ namespace App.Planets.Persistence
 
                 var currentPosition = generator.transform.position;
                 generator.transform.position = new Vector3(offset.x, offset.y, currentPosition.z);
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryApplyNonOverlappingSpawnPositionWithExpansion(PlanetGenerator generator, ref float worldSpawnRadius)
+        {
+            worldSpawnRadius = Mathf.Max(0f, worldSpawnRadius);
+
+            if (TryApplyNonOverlappingSpawnPosition(generator, worldSpawnRadius))
+                return true;
+
+            var expansions = Mathf.Max(0, maxSpawnRadiusExpansionsPerPlanet);
+            var factor = Mathf.Max(1.01f, spawnRadiusExpansionFactor);
+
+            for (var i = 0; i < expansions; i++)
+            {
+                worldSpawnRadius = Mathf.Max(worldSpawnRadius + 0.01f, worldSpawnRadius * factor);
+
+                if (!TryApplyNonOverlappingSpawnPosition(generator, worldSpawnRadius))
+                    continue;
+
+                if (verboseLogging)
+                {
+                    Debug.Log(
+                        $"Expanded world spawn radius to {worldSpawnRadius:F2} to place planet '{generator.gameObject.name}'.",
+                        this);
+                }
+
                 return true;
             }
 

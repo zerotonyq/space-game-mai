@@ -14,6 +14,12 @@ namespace App.Entities
         void ToggleOrbitDirection();
     }
 
+    public interface IGameplayHeroFlightAltitudeRuntimeService
+    {
+        void IncreaseFlightAltitude();
+        void DecreaseFlightAltitude();
+    }
+
     public class HeroPlanetSwitchRuntimeService : IGameService, IGameplayPlanetSwitchRuntimeService, ITickable
     {
         private const float DefaultMaxRaycastDistance = 250f;
@@ -88,8 +94,8 @@ namespace App.Entities
             if (_aimDirection.sqrMagnitude < AimDirectionThresholdSqr)
                 return;
 
-            var origin = (Vector2)hero.transform.position;
             var direction = _aimDirection.normalized;
+            var origin = (Vector2)hero.transform.position + direction;
             var hit = Physics2D.Raycast(origin, direction, DefaultMaxRaycastDistance);
             if (!hit.collider)
                 return;
@@ -141,7 +147,7 @@ namespace App.Entities
 
             var desiredOrbitRadius = Mathf.Max(
                 0.01f,
-                _activeTravelTarget.EstimatedOuterRadiusUnits + Mathf.Max(0f, heroOrbit.AltitudeFromSurface));
+                _activeTravelTarget.EstimatedOuterRadiusUnits + Mathf.Max(0f, heroOrbit.EffectiveAltitudeFromSurface));
             var desiredPosition = center + toHero.normalized * desiredOrbitRadius;
 
             var speed = Mathf.Max(0.01f, hero.TransferSpeedUnitsPerSecond > 0f
@@ -162,6 +168,43 @@ namespace App.Entities
             heroOrbit.SetCurrentAngleDeg(Mathf.Atan2(nextPosition.y - center.y, nextPosition.x - center.x) * Mathf.Rad2Deg);
             heroOrbit.SnapToOrbitPosition();
             _activeTravelTarget = null;
+        }
+    }
+
+    public class HeroFlightAltitudeRuntimeService : IGameService, IGameplayHeroFlightAltitudeRuntimeService
+    {
+        private const float AltitudeStepUnits = 0.5f;
+
+        private readonly IHeroOrbitRuntimeProvider _heroOrbitProvider;
+
+        public HeroFlightAltitudeRuntimeService([InjectOptional] IHeroOrbitRuntimeProvider heroOrbitProvider)
+        {
+            _heroOrbitProvider = heroOrbitProvider;
+        }
+
+        public UniTask Initialize()
+        {
+            return UniTask.CompletedTask;
+        }
+
+        public void IncreaseFlightAltitude()
+        {
+            ChangeFlightAltitude(AltitudeStepUnits);
+        }
+
+        public void DecreaseFlightAltitude()
+        {
+            ChangeFlightAltitude(-AltitudeStepUnits);
+        }
+
+        private void ChangeFlightAltitude(float deltaUnits)
+        {
+            var heroOrbit = _heroOrbitProvider?.CurrentHeroOrbitMovement;
+            if (!heroOrbit)
+                return;
+
+            heroOrbit.SetAltitudeFromSurface(heroOrbit.AltitudeFromSurface + deltaUnits);
+            heroOrbit.SnapToOrbitPosition();
         }
     }
 }

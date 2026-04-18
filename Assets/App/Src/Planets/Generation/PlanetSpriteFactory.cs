@@ -85,6 +85,7 @@ namespace App.Planets.Generation
             var radiusSqr = radiusPx * radiusPx;
             var fillTexture = GetReadableTextureOrNull(profile);
             var tint = profile ? profile.Tint : Color.white;
+            var textureScale = profile ? profile.TextureScale : 1f;
 
             for (var y = 0; y < diameterPx; y++)
             {
@@ -99,7 +100,7 @@ namespace App.Planets.Generation
                     }
 
                     var uvSourceUnits = offset / _settings.PixelsPerUnit;
-                    pixels[index] = SampleFillColor(fillTexture, tint, fallbackColor, uvSourceUnits);
+                    pixels[index] = SampleFillColor(fillTexture, tint, fallbackColor, uvSourceUnits, textureScale);
                 }
             }
 
@@ -122,6 +123,7 @@ namespace App.Planets.Generation
             var outlineWidth = Mathf.Max(1f, _settings.SegmentOutlineWidthPixels);
             var fillTexture = GetReadableTextureOrNull(profile);
             var tint = profile ? profile.Tint : Color.white;
+            var textureScale = profile ? profile.TextureScale : 1f;
 
             for (var y = 0; y < size; y++)
             {
@@ -161,7 +163,7 @@ namespace App.Planets.Generation
                     }
 
                     var uvSourceUnits = direction / _settings.PixelsPerUnit;
-                    pixels[index] = SampleFillColor(fillTexture, tint, fallbackColor, uvSourceUnits);
+                    pixels[index] = SampleFillColor(fillTexture, tint, fallbackColor, uvSourceUnits, textureScale);
                 }
             }
 
@@ -186,14 +188,15 @@ namespace App.Planets.Generation
             return null;
         }
 
-        private Color SampleFillColor(Texture2D fillTexture, Color tint, Color fallbackColor, Vector2 sourceUnits)
+        private Color SampleFillColor(Texture2D fillTexture, Color tint, Color fallbackColor, Vector2 sourceUnits, float textureScale)
         {
             if (fillTexture == null)
                 return fallbackColor;
 
             var tileSize = Mathf.Max(0.001f, _settings.TextureTileSizeUnits);
-            var u = sourceUnits.x / tileSize + _settings.TextureUvOffset.x;
-            var v = sourceUnits.y / tileSize + _settings.TextureUvOffset.y;
+            var profileScale = Mathf.Clamp(textureScale, 0.1f, 16f);
+            var u = sourceUnits.x / tileSize * profileScale + _settings.TextureUvOffset.x;
+            var v = sourceUnits.y / tileSize * profileScale + _settings.TextureUvOffset.y;
             var textureColor = fillTexture.GetPixelBilinear(Mathf.Repeat(u, 1f), Mathf.Repeat(v, 1f));
             return textureColor * tint;
         }

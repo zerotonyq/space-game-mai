@@ -89,3 +89,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9d398b9b54293274da550638367991cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::App.Entities.EntityVillainTag
+  mineShotIntervalSeconds: 5
+  resourceProbeDistance: 64
+  resourceProbeMask:
+    serializedVersion: 2
+    m_Bits: 115
+  autoCraftDrillAmmo: 1
+  attackShotIntervalSeconds: 2
+  attackAltitudeOffsetFromTarget: 2
+  attackReactionDelaySeconds: 1
+  attackAimToleranceDeg: 10
+  attackAltitudeAdjustSpeedUnitsPerSecond: 2
+  attackMissChance: 0.35
+  attackMissAngleMinDeg: 8
+  attackMissAngleMaxDeg: 22
+  transferCheckIntervalSeconds: 10
+  transferChancePerCheck: 0.25
+  transferSpeedUnitsPerSecond: 9
+  transferArrivalThresholdUnits: 0.35

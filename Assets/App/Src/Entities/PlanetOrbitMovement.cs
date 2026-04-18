@@ -11,8 +11,9 @@ namespace App.Entities
 
     public class PlanetOrbitMovement : MonoBehaviour
     {
-        [SerializeField] [Min(0.01f)] private float angularSpeedDegPerSecond = 25f;
+        [SerializeField] [Min(0f)] private float angularSpeedDegPerSecond = 25f;
         [SerializeField] [Min(0f)] private float altitudeFromSurface = 2f;
+        [SerializeField] [Min(0f)] private float minAltitudeFromSurface = 2f;
         [SerializeField] private OrbitRotationDirection rotationDirection = OrbitRotationDirection.Clockwise;
         [SerializeField] private bool keepCurrentAngleWhenCenterChanges = true;
 
@@ -25,6 +26,8 @@ namespace App.Entities
         public Transform OrbitCenter => _orbitCenter;
         public float SurfaceRadiusUnits => _surfaceRadiusUnits;
         public float AltitudeFromSurface => altitudeFromSurface;
+        public float MinAltitudeFromSurface => minAltitudeFromSurface;
+        public float EffectiveAltitudeFromSurface => Mathf.Max(minAltitudeFromSurface, altitudeFromSurface);
         public float AngularSpeedDegPerSecond => angularSpeedDegPerSecond;
         public OrbitRotationDirection RotationDirection => rotationDirection;
         public float CurrentAngleDeg => _currentAngleDeg;
@@ -82,7 +85,7 @@ namespace App.Entities
 
         public void SetAngularSpeedDegPerSecond(float speedDegPerSecond)
         {
-            angularSpeedDegPerSecond = Mathf.Max(0.01f, speedDegPerSecond);
+            angularSpeedDegPerSecond = Mathf.Max(0f, speedDegPerSecond);
         }
 
         public void SetCurrentAngleDeg(float angleDeg)
@@ -95,7 +98,7 @@ namespace App.Entities
             if (_orbitCenter == null)
                 return;
 
-            var radius = Mathf.Max(0.01f, _surfaceRadiusUnits + altitudeFromSurface);
+            var radius = Mathf.Max(0.01f, _surfaceRadiusUnits + EffectiveAltitudeFromSurface);
             var angleRad = _currentAngleDeg * Mathf.Deg2Rad;
             var offset = new Vector2(Mathf.Cos(angleRad), Mathf.Sin(angleRad)) * radius;
             var currentZ = transform.position.z;

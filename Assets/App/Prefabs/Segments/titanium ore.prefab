@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &583263021226074460
+--- !u!1 &4078258238421795517
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,22 +8,23 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 7096616907508622686}
-  - component: {fileID: 2202621090895322489}
+  - component: {fileID: 1741119317292315198}
+  - component: {fileID: 3292695198949022519}
+  - component: {fileID: 2441029118349599074}
   m_Layer: 0
-  m_Name: center
+  m_Name: titanium ore
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &7096616907508622686
+--- !u!4 &1741119317292315198
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 583263021226074460}
+  m_GameObject: {fileID: 4078258238421795517}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -8.40643, y: 1.8635, z: 0}
@@ -32,17 +33,34 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2202621090895322489
+--- !u!114 &3292695198949022519
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 583263021226074460}
+  m_GameObject: {fileID: 4078258238421795517}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0cf44c42d528db849b1b19fda7baa9fc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::App.SegmentTextureProfile
-  fillTexture: {fileID: 2800000, guid: 5f52e91e8eec28a4a82b03f6bc2efc58, type: 3}
-  tint: {r: 0.8867924, g: 0.8773474, b: 0.18823427, a: 1}
+  fillTexture: {fileID: 2800000, guid: a6ef58faa6242694787f0a374faf02d4, type: 3}
+  tint: {r: 0, g: 0.23288822, b: 1, a: 1}
+  material: 4
+--- !u!114 &2441029118349599074
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4078258238421795517}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f46a0d6ba5513104fa11bc7756e3df80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::App.Planets.GfxGen.SegmentSpawnProbabilityRule
+  minTotalLayersExclusive: 8
+  minCoreRadiusExclusive: 5.25
+  minLayerPercentile: 12.4
+  maxLayerPercentile: 41
